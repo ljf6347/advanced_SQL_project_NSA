@@ -1,0 +1,119 @@
+import time
+import datetime
+
+def statisticalValidation(anomalies, ref_table, tar_table, method='chi_square'):
+    start_time = time.time()
+    result = None
+    match method:
+        case 'chi_square':
+            result = chi_square_validation(anomalies, ref_table, tar_table)
+        case 'Z_score':
+            result = Z_score_validation(anomalies, tar_table)
+        case 'IQR':
+            result = IQR_validation(anomalies, tar_table)
+        case 'range_check':
+            result = range_check(anomalies, tar_table)
+        case 'threshold':
+            result = threshold_validation(anomalies, ref_table, tar_table)
+        case 'monte_carlo':
+            result = monte_carlo_validation(anomalies, ref_table, tar_table)
+    end_time = time.time()
+    print(f"Statistical validation using {method} took {end_time - start_time} seconds.")
+    return result
+
+# for categorical datasets
+def chi_square_validation(anomalies, ref_table, tar_table):
+    a = 0.05
+    pass
+
+# for numerical dataset, need to be log transformed if skewed
+def Z_score_validation(anomalies, tar_table):
+    standard_deviations = {}
+    target_sums = {}
+    target_lengths = {}
+    target_means = {}
+
+    # calculate means for each feature
+    for value in tar_table:
+        for feature in value:
+            if feature not in target_sums:
+                target_sums[feature] = 0
+                target_lengths[feature] = 0
+                target_means[feature] = 0
+                standard_deviations[feature] = 0
+            target_sums[feature] += value[feature]
+            target_lengths[feature] += 1
+    for feature in target_sums:
+        target_means[feature] = target_sums[feature] / target_lengths[feature]
+
+    # calculate standard deviations for each feature
+    for value in tar_table:
+        for feature in value:
+            standard_deviations[feature] += (value[feature] - target_means[feature]) ** 2
+    for feature in standard_deviations:
+        standard_deviations[feature] = (standard_deviations[feature] / (target_lengths[feature] - 1)) ** 0.5
+
+    # check if anomalies are beyond 3 standard deviations from any feature
+    real_anomalies = []
+    for anomaly in anomalies:
+        for feature in anomaly:
+            if standard_deviations[feature] == 1: # no other values have that feature, probably an anomaly
+                break
+            z_score = (anomaly[feature] - target_means[feature]) / standard_deviations[feature]
+            if abs(z_score) > 3:
+                real_anomalies.append(anomaly)
+                break
+    return real_anomalies
+
+# for numerical dataset, need to be log transformed if skewed
+def IQR_validation(anomalies, tar_table):
+    features = []
+    for record in tar_table:
+        for feature in record:
+            if feature not in features:
+                features.append(feature)
+
+    # get upper and lower bound with Q1 and Q3 for each feature
+    ranges = []
+    for feature in features:
+        tar_table_sorted = sorted(tar_table[feature])
+        Q1 = tar_table_sorted[len(tar_table_sorted) // 4]
+        Q3 = tar_table_sorted[len(tar_table_sorted) * 3 // 4]
+
+        IQR = Q3 - Q1
+        range = 1.5 * IQR
+        lower_bound = Q1 - range
+        upper_bound = Q3 + range
+        ranges.append({'feature': {'lower_bound': lower_bound, 'upper_bound': upper_bound}})
+
+    real_anomalies = []
+    for anomaly in anomalies:
+        for feature in anomaly:
+            if anomaly[feature] < feature['lower_bound'] or anomaly[feature] > feature['upper_bound']:
+                real_anomalies.append(anomaly)
+    return real_anomalies
+
+# for dates, one feature at a time
+def range_check(anomalies, tar_table):
+    # ima just check if date is outside IQR of target
+    integer_anomalies = []
+    integer_target = []
+    for anomaly in anomalies:
+        integer_anomalies.append(time.mktime(datetime.datetime.strptime(anomaly, "%d/%m/%Y").timetuple()))
+    for target in tar_table:
+        integer_target.append(time.mktime(datetime.datetime.strptime(target, "%d/%m/%Y").timetuple()))
+    return IQR_validation(integer_anomalies, integer_target)
+
+# check distribution change over 5%
+def threshold_validation(anomalies, ref_table, tar_table):
+    pass
+
+# our methods
+def monte_carlo_validation(anomalies, ref_table, tar_table):
+    pass
+
+def mean_absolute_deviation(anomalies, ref_table, tar_table):
+    pass
+
+def kernel_density_estimation(anomalies, ref_table, tar_table):
+    pass
