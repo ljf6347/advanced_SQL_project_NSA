@@ -18,7 +18,7 @@ def statisticalValidation(anomalies, ref_table, tar_table, method='chi_square'):
         case 'monte_carlo':
             result = monte_carlo_validation(anomalies, ref_table, tar_table)
     end_time = time.time()
-    print(f"Statistical validation using {method} took {end_time - start_time} seconds.")
+    print(f"Statistical validation using {method} took {end_time - start_time} seconds and validated {len(result)} anomalies.")
     return result
 
 # for categorical datasets
@@ -93,16 +93,11 @@ def IQR_validation(anomalies, tar_table):
                 real_anomalies.append(anomaly)
     return real_anomalies
 
-# for dates, one feature at a time
+# for dates (only have one feature that should be the dates)
 def range_check(anomalies, tar_table):
     # ima just check if date is outside IQR of target
-    integer_anomalies = []
-    integer_target = []
-    for anomaly in anomalies:
-        integer_anomalies.append(time.mktime(datetime.datetime.strptime(anomaly, "%d/%m/%Y").timetuple()))
-    for target in tar_table:
-        integer_target.append(time.mktime(datetime.datetime.strptime(target, "%d/%m/%Y").timetuple()))
-    return IQR_validation(integer_anomalies, integer_target)
+    # because it is normalized we can use IQR
+    return IQR_validation(anomalies, tar_table)
 
 # check distribution change over 5%
 def threshold_validation(anomalies, ref_table, tar_table):
