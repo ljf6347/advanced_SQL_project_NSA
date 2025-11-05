@@ -2,6 +2,7 @@ from datetime import datetime
 import random
 import time
 from statistical_validation import statisticalValidation
+import tqdm
 
 # Using paper's pseudocode for NSA algorithm
 # ref_table = reference table, tar_table = target table
@@ -26,12 +27,16 @@ def detect_anomalies(ref_table, tar_table, features, detector_count, matching_th
         if isValid:
             detectors.append(candidate)
         attempts += 1
+    
+    print('Generated ' + str(len(detectors)) + ' detectors')
+
+    print('Starting anomaly detection...')
 
     # find anomalies
     anomalies = []
     chunk_size = 10000
     size_of_t = len(tar_table)
-    for i in range(0, size_of_t, chunk_size):
+    for i in tqdm(range(0, size_of_t, chunk_size)):
         chunk = tar_table[i:i + chunk_size]
         for record in chunk:
             for detector in detectors:
@@ -81,8 +86,10 @@ def normalize_data(reference_data, target_data):
                     else:
                         record[feature] = 0.0
                 elif type(record[feature]) == str:
+                    # really should calculate distance later with strings by levenshtein distance
                     record[feature] = int(len(record[feature]))
                 elif type(record[feature]) == list:
+                    # really should calculate distance later with set intersections or something
                     record[feature] = int(len(record[feature]))
                 elif type(record[feature]) == datetime:
                     record[feature] = time.mktime(datetime.datetime.strptime(record[feature], "%d/%m/%Y").timetuple())

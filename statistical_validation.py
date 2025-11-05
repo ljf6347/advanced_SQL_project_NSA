@@ -1,7 +1,9 @@
 import time
+import tqdm
 import datetime
 
 def statisticalValidation(anomalies, ref_table, tar_table, method='chi_square'):
+    print("Starting statistical validation using method: {method}")
     start_time = time.time()
     result = None
     match method:
@@ -34,7 +36,7 @@ def Z_score_validation(anomalies, tar_table):
     target_means = {}
 
     # calculate means for each feature
-    for value in tar_table:
+    for value in tqdm(tar_table):
         for feature in value:
             if feature not in target_sums:
                 target_sums[feature] = 0
@@ -75,7 +77,7 @@ def IQR_validation(anomalies, tar_table):
 
     # get upper and lower bound with Q1 and Q3 for each feature
     ranges = []
-    for feature in features:
+    for feature in tqdm(features):
         tar_table_sorted = sorted(tar_table[feature])
         Q1 = tar_table_sorted[len(tar_table_sorted) // 4]
         Q3 = tar_table_sorted[len(tar_table_sorted) * 3 // 4]
@@ -87,7 +89,7 @@ def IQR_validation(anomalies, tar_table):
         ranges.append({'feature': {'lower_bound': lower_bound, 'upper_bound': upper_bound}})
 
     real_anomalies = []
-    for anomaly in anomalies:
+    for anomaly in tqdm(anomalies):
         for feature in anomaly:
             if anomaly[feature] < feature['lower_bound'] or anomaly[feature] > feature['upper_bound']:
                 real_anomalies.append(anomaly)
