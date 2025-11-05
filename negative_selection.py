@@ -13,10 +13,12 @@ def detect_anomalies(ref_table, tar_table, features, detector_count, matching_th
     max_attempts = detector_count * 10
 
     # normalize and convert data to numbers to calculate distance
+    print("Normalizing data...")
     ref_table, tar_table = normalize_data(ref_table, tar_table)
 
     # generate detectors
     while len(detectors) < detector_count and attempts < max_attempts:
+        print(f"\rGenerating detectors: {len(detectors)}/{detector_count} attempts {attempts}/{max_attempts}", end="")
         isValid = True
         candidate = generateRandomDetector(features, ref_table)
         for record in sampleFrom(ref_table, 100):
@@ -28,15 +30,13 @@ def detect_anomalies(ref_table, tar_table, features, detector_count, matching_th
             detectors.append(candidate)
         attempts += 1
     
-    print('Generated ' + str(len(detectors)) + ' detectors')
-
-    print('Starting anomaly detection...')
+    print('\nGenerated ' + str(len(detectors)) + ' detectors')
 
     # find anomalies
     anomalies = []
     chunk_size = 10000
     size_of_t = len(tar_table)
-    for i in tqdm(range(0, size_of_t, chunk_size)):
+    for i in tqdm.tqdm(range(0, size_of_t, chunk_size), desc="Detecting anomalies"):
         chunk = tar_table[i:i + chunk_size]
         for record in chunk:
             for detector in detectors:
@@ -75,7 +75,7 @@ def normalize_data(reference_data, target_data):
                 features.append(feature)
 
     # convert values to numbers
-    for feature in features:
+    for feature in tqdm.tqdm(features, desc="Converting values to numeric"):
         for record in reference_data:
             if (record[feature] is not None):
                 if type(record[feature]) == int or type(record[feature]) == float:
@@ -97,7 +97,7 @@ def normalize_data(reference_data, target_data):
     # find minimum and maximum for each feature
     feature_mins = {}
     feature_maxs = {}
-    for feature in features:
+    for feature in tqdm.tqdm(features, desc="Finding min/max values"):
         for record in reference_data:
             if (record[feature] is not None):
                 if feature not in feature_mins:
@@ -112,7 +112,7 @@ def normalize_data(reference_data, target_data):
     # normalize both datasets
     normalized_reference_data = []
     normalized_target_data = []
-    for feature in features:
+    for feature in tqdm.tqdm(features, desc="Normalizing data"):
         range = feature_maxs[feature] - feature_mins[feature]
         for record in reference_data:
             if (record[feature] is not None):

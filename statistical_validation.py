@@ -36,7 +36,7 @@ def Z_score_validation(anomalies, tar_table):
     target_means = {}
 
     # calculate means for each feature
-    for value in tqdm(tar_table):
+    for value in tqdm.tqdm(tar_table, desc="Calculating means"):
         for feature in value:
             if feature not in target_sums:
                 target_sums[feature] = 0
@@ -49,15 +49,15 @@ def Z_score_validation(anomalies, tar_table):
         target_means[feature] = target_sums[feature] / target_lengths[feature]
 
     # calculate standard deviations for each feature
-    for value in tar_table:
+    for value in tqdm.tqdm(tar_table, desc="Calculating standard deviations 1/2"):
         for feature in value:
             standard_deviations[feature] += (value[feature] - target_means[feature]) ** 2
-    for feature in standard_deviations:
+    for feature in tqdm.tqdm(standard_deviations, desc="Calculating standard deviations 2/2"):
         standard_deviations[feature] = (standard_deviations[feature] / (target_lengths[feature] - 1)) ** 0.5
 
     # check if anomalies are beyond 3 standard deviations from any feature
     real_anomalies = []
-    for anomaly in anomalies:
+    for anomaly in tqdm.tqdm(anomalies, desc="Validating anomalies with Z-score"):
         for feature in anomaly:
             if standard_deviations[feature] == 1: # no other values have that feature, probably an anomaly
                 break
@@ -77,7 +77,7 @@ def IQR_validation(anomalies, tar_table):
 
     # get upper and lower bound with Q1 and Q3 for each feature
     ranges = []
-    for feature in tqdm(features):
+    for feature in tqdm.tqdm(features, desc="Calculating IQR ranges"):
         tar_table_sorted = sorted(tar_table[feature])
         Q1 = tar_table_sorted[len(tar_table_sorted) // 4]
         Q3 = tar_table_sorted[len(tar_table_sorted) * 3 // 4]
@@ -89,7 +89,7 @@ def IQR_validation(anomalies, tar_table):
         ranges.append({'feature': {'lower_bound': lower_bound, 'upper_bound': upper_bound}})
 
     real_anomalies = []
-    for anomaly in tqdm(anomalies):
+    for anomaly in tqdm.tqdm(anomalies, desc="Validating anomalies with IQR"):
         for feature in anomaly:
             if anomaly[feature] < feature['lower_bound'] or anomaly[feature] > feature['upper_bound']:
                 real_anomalies.append(anomaly)
