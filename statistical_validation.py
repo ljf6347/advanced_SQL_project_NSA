@@ -3,22 +3,25 @@ import tqdm
 import datetime
 
 def statisticalValidation(anomalies, ref_table, tar_table, method='chi_square'):
-    print("Starting statistical validation using method: {method}")
+    print(f"Starting statistical validation using method: {method}")
     start_time = time.time()
     result = None
     match method:
         case 'chi_square':
             result = chi_square_validation(anomalies, ref_table, tar_table)
         case 'Z_score':
-            result = Z_score_validation(anomalies, tar_table)
+            result = Z_score_validation(anomalies, ref_table)
         case 'IQR':
-            result = IQR_validation(anomalies, tar_table)
+            result = IQR_validation(anomalies, ref_table)
         case 'range_check':
-            result = range_check(anomalies, tar_table)
+            result = range_check(anomalies, ref_table)
         case 'threshold':
             result = threshold_validation(anomalies, ref_table, tar_table)
         case 'monte_carlo':
             result = monte_carlo_validation(anomalies, ref_table, tar_table)
+        case _:
+            print(f"Unknown statistical validation method: {method}")
+            return anomalies
     end_time = time.time()
     print(f"Statistical validation using {method} took {end_time - start_time} seconds and validated {len(result)} anomalies.")
     return result
@@ -69,29 +72,30 @@ def Z_score_validation(anomalies, tar_table):
 
 # for numerical dataset, need to be log transformed if skewed
 def IQR_validation(anomalies, tar_table):
-    features = []
-    for record in tar_table:
-        for feature in record:
-            if feature not in features:
-                features.append(feature)
-
     # get upper and lower bound with Q1 and Q3 for each feature
-    ranges = []
-    for feature in tqdm.tqdm(features, desc="Calculating IQR ranges"):
-        tar_table_sorted = sorted(tar_table[feature])
+    num_features = len(tar_table[0])
+    feature_ranges = []
+    feature_tables = []
+    for feature in range(num_features):
+        feature_tables.append([])
+    for record in tar_table:
+        for feature in range(num_features):
+            feature_tables[feature].append(record[feature])
+    for feature in tqdm.trange(num_features, desc="Calculating IQR ranges"):
+        tar_table_sorted = sorted(feature_tables[feature])
         Q1 = tar_table_sorted[len(tar_table_sorted) // 4]
         Q3 = tar_table_sorted[len(tar_table_sorted) * 3 // 4]
 
         IQR = Q3 - Q1
-        range = 1.5 * IQR
-        lower_bound = Q1 - range
-        upper_bound = Q3 + range
-        ranges.append({'feature': {'lower_bound': lower_bound, 'upper_bound': upper_bound}})
+        IQR_range = 1.5 * IQR
+        lower_bound = Q1 - IQR_range
+        upper_bound = Q3 + IQR_range
+        feature_ranges.append({'lower_bound': lower_bound, 'upper_bound': upper_bound})
 
     real_anomalies = []
     for anomaly in tqdm.tqdm(anomalies, desc="Validating anomalies with IQR"):
-        for feature in anomaly:
-            if anomaly[feature] < feature['lower_bound'] or anomaly[feature] > feature['upper_bound']:
+        for feature in range(num_features):
+            if anomaly[feature] < feature_ranges[feature]['lower_bound'] or anomaly[feature] > feature_ranges[feature]['upper_bound']:
                 real_anomalies.append(anomaly)
     return real_anomalies
 

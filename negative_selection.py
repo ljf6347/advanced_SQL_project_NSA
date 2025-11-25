@@ -1,26 +1,30 @@
-from datetime import datetime
+import datetime
+import decimal
 import random
 import time
 from statistical_validation import statisticalValidation
 import tqdm
+from tqdm import trange
 
 # Using paper's pseudocode for NSA algorithm
 # ref_table = reference table, tar_table = target table
-def detect_anomalies(ref_table, tar_table, features, detector_count, matching_threshold):
+def detect_anomalies(ref_table, tar_table, features, detector_count, matching_threshold=None, method='chi_square'):
     start = time.time()
     attempts = 0
     detectors = []
     max_attempts = detector_count * 10
+    if matching_threshold is None:
+        matching_threshold = 0.1 * len(features)
 
     # normalize and convert data to numbers to calculate distance
     print("Normalizing data...")
-    ref_table, tar_table = normalize_data(ref_table, tar_table)
+    ref_table, tar_table = normalize_data(ref_table, tar_table, features)
 
     # generate detectors
     while len(detectors) < detector_count and attempts < max_attempts:
         print(f"\rGenerating detectors: {len(detectors)}/{detector_count} attempts {attempts}/{max_attempts}", end="")
         isValid = True
-        candidate = generateRandomDetector(features, ref_table)
+        candidate = generateRandomDetector(features)
         for record in sampleFrom(ref_table, 100):
             distance = calculateDistance(candidate, record)
             if distance < matching_threshold:
@@ -31,6 +35,9 @@ def detect_anomalies(ref_table, tar_table, features, detector_count, matching_th
         attempts += 1
     
     print('\nGenerated ' + str(len(detectors)) + ' detectors')
+    if (len(detectors) < detector_count / 4):
+        print("Couldn't generate enough detectors, exiting.")
+        return []
 
     # find anomalies
     anomalies = []
@@ -48,56 +55,61 @@ def detect_anomalies(ref_table, tar_table, features, detector_count, matching_th
     end = time.time()
     print(f"The NSA algorithm took {end - start} seconds and found {len(anomalies)} anomalies.")
 
-    A = statisticalValidation(anomalies, ref_table, tar_table)
+    A = statisticalValidation(anomalies, ref_table, tar_table, method=method)
     return A
 
 # make random numbers for each feature
-def generateRandomDetector(features, ref_table):
+def generateRandomDetector(features):
     detector = {}
-    for feature in features:
-        # get example feature from a record in the table to see what type it is
-        for record in ref_table:
-            min = min(record[feature] for record in ref_table)
-            max = max(record[feature] for record in ref_table)
-            detector[feature] = random.uniform(min, max)
+    for feature in range(len(features)):
+        detector[feature] = random.uniform(0, 1)
     return detector
 
 def sampleFrom(R, number):
     return random.sample(R, number)
 
-# normalize reference data between 0 and 1, apply same transformation to target data
-def normalize_data(reference_data, target_data):
-    # get list of features
-    features = []
-    for record in reference_data:
-        for feature in record:
-            if feature not in features:
-                features.append(feature)
-
-    # convert values to numbers
-    for feature in tqdm.tqdm(features, desc="Converting values to numeric"):
-        for record in reference_data:
+def table_to_numbers(table, number_of_features):
+    cur_record = 0
+    for record in tqdm.tqdm(table, desc="Converting data to numbers"):
+        for feature in range(number_of_features):
             if (record[feature] is not None):
-                if type(record[feature]) == int or type(record[feature]) == float:
-                    record[feature] = float(record[feature])
-                elif type(record[feature]) == bool:
+                if type(record[feature]) == bool:
                     if (record[feature] == True):
-                        record[feature] = 1.0
+                        table[cur_record][feature] = 1
                     else:
-                        record[feature] = 0.0
+                        table[cur_record][feature] = 0
                 elif type(record[feature]) == str:
                     # really should calculate distance later with strings by levenshtein distance
-                    record[feature] = int(len(record[feature]))
+                    length = len(record[feature])
+                    table[cur_record][feature] = int(length)
                 elif type(record[feature]) == list:
                     # really should calculate distance later with set intersections or something
-                    record[feature] = int(len(record[feature]))
-                elif type(record[feature]) == datetime:
-                    record[feature] = time.mktime(datetime.datetime.strptime(record[feature], "%d/%m/%Y").timetuple())
+                    table[cur_record][feature] = int(len(record[feature]))
+                elif isinstance(record[feature], datetime.datetime):
+                    table[cur_record][feature] = time.mktime(record[feature].timetuple())
+
+                # datetime.date (but NOT datetime.datetime)
+                elif isinstance(record[feature], datetime.date):
+                    dt = datetime.datetime.combine(record[feature], datetime.time())
+                    table[cur_record][feature] = time.mktime(dt.timetuple())
+                elif type(record[feature]) is decimal.Decimal:
+                    table[cur_record][feature] = float(record[feature])
+                # else:
+                #     print(f"Unknown data type: {type(record[feature])}")
+        cur_record += 1
+    return table
+
+# normalize reference data between 0 and 1, apply same transformation to target data
+def normalize_data(reference_data, target_data, features):
+    # convert values to numbers
+    amount_of_features = len(features)
+    reference_data = table_to_numbers(reference_data, amount_of_features)
+    target_data = table_to_numbers(target_data, amount_of_features)
 
     # find minimum and maximum for each feature
     feature_mins = {}
     feature_maxs = {}
-    for feature in tqdm.tqdm(features, desc="Finding min/max values"):
+    for feature in trange(amount_of_features, desc="Finding min/max values"):
         for record in reference_data:
             if (record[feature] is not None):
                 if feature not in feature_mins:
@@ -112,14 +124,22 @@ def normalize_data(reference_data, target_data):
     # normalize both datasets
     normalized_reference_data = []
     normalized_target_data = []
-    for feature in tqdm.tqdm(features, desc="Normalizing data"):
-        range = feature_maxs[feature] - feature_mins[feature]
-        for record in reference_data:
-            if (record[feature] is not None):
-                normalized_reference_data.append((record[feature] - feature_mins[feature]) / range)
-        for record in target_data:
-            if (record[feature] is not None):
-                normalized_target_data.append((record[feature] - feature_mins[feature]) / range)
+    for feature in trange(amount_of_features, desc="Normalizing data"):
+        value_range = feature_maxs[feature] - feature_mins[feature]
+        for record_num in range(len(reference_data)):
+            if (feature == 0):
+                normalized_reference_data.append([])
+            if (reference_data[record_num][feature] is not None and value_range > 0):
+                normalized_reference_data[record_num].append((reference_data[record_num][feature] - feature_mins[feature]) / value_range)
+            if (value_range == 0):
+                normalized_reference_data[record_num].append(0.0)
+        for record_num in range(len(target_data)):
+            if (feature == 0):
+                normalized_target_data.append([])
+            if (target_data[record_num][feature] is not None and value_range > 0):
+                normalized_target_data[record_num].append((target_data[record_num][feature] - feature_mins[feature]) / value_range)
+            if (value_range == 0):
+                normalized_target_data[record_num].append(0.0)
     return normalized_reference_data, normalized_target_data
 
 # using Euclidean distance

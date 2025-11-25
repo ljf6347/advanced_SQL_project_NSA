@@ -1,20 +1,13 @@
-**Steps to run**
+**To create database automatically**
+1. Download the original data [here](https://drive.google.com/drive/folders/1nTfZMklwk2XcOB9Tyk4MduWzKk1CgXH-?usp=sharing). 
+2. Run the database_setup.py file with arguments for data_location, PostgreSQL username, and password. 
+   1. More info below to run manually
 
-1. Navigate to main directory
-2. add auth.py with function to get mongo connection string ("getConnectionString()")
-3. run main.py
-   
 **functions**
 - add_anomalies
   - Artificially add anomalies into the data
 - detect_anomalies
   - Runs the negative selection algorithm to find anomalies
-- load_data
-  - Load data into the program to start
-- load_initial_data
-  - Load the initial data
-- save_data
-  - Saves the initial state of the data before anomalies
 - quit 
   - Exits the program
 

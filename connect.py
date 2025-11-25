@@ -1,17 +1,16 @@
-import pymongo
-import logging
-import auth
+import psycopg2
 
-def add_database():
-    return connect_to_database()
+def add_database(username, password, database_name):
+    return connect_to_database(username, password, database_name)
 
-def connect_to_database():
+def connect_to_database(username, password, database_name):
     try:
-        connection_string  = auth.getConnectionString()
-        myclient = pymongo.MongoClient(connection_string, maxPoolSize=12, w='majority', connectTimeoutMS=2000)
-        logging.getLogger("pymongo.command").setLevel(logging.ERROR)
-
-        print("DataBase database Established")
-        return myclient
-    except Exception as e:
-        raise Exception(f"database failed: {e}")
+        connection = psycopg2.connect(database = database_name, 
+            user = username, 
+            host= '127.0.0.1',
+            password = password,
+            port = 5432)
+        print("DataBase connection Established")
+        return connection
+    except Exception:
+        print("Connection failed")
