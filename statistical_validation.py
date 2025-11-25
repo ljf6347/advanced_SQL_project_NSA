@@ -1,8 +1,11 @@
 import time
 import tqdm
-import datetime
+import results
 
 def statisticalValidation(anomalies, ref_table, tar_table, method='chi_square'):
+    print("Results before validation:")
+    results.check_anomalies(anomalies, ref_table, tar_table)
+    
     print(f"Starting statistical validation using method: {method}")
     start_time = time.time()
     result = None
@@ -24,6 +27,8 @@ def statisticalValidation(anomalies, ref_table, tar_table, method='chi_square'):
             return anomalies
     end_time = time.time()
     print(f"Statistical validation using {method} took {end_time - start_time} seconds and validated {len(result)} anomalies.")
+    print("Results after validation:")
+    results.check_anomalies(result, ref_table, tar_table)
     return result
 
 # for categorical datasets
@@ -97,6 +102,7 @@ def IQR_validation(anomalies, tar_table):
         for feature in range(num_features):
             if anomaly[feature] < feature_ranges[feature]['lower_bound'] or anomaly[feature] > feature_ranges[feature]['upper_bound']:
                 real_anomalies.append(anomaly)
+                break
     return real_anomalies
 
 # for dates (only have one feature that should be the dates)

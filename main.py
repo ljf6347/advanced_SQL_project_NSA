@@ -12,7 +12,8 @@ get_table_sql = """
     SELECT * FROM %s
 """
 
-tables = ["customer", "lineitem", "orders"]
+# tables = ["customer", "lineitem", "orders"]
+tables = ["lineitem", "orders"]
 base_database_small = "csci_725_tpch_small"
 base_database_medium = "csci_725_tpch_medium"
 base_database_original = "csci_725_tpch_original"
@@ -24,7 +25,7 @@ def execute_user_order(username, password, user_input):
         case "detect_anomalies":
             method = input("Which statistical validation method would you like to use? (chi_square, Z_score, IQR, etc): " + "\n")
             # method = "IQR"
-            # anomaly_type = "value"
+            # anomaly_type = "outlier"
             anomaly_type = input("What type of anomalies are you looking for? (value, outlier, date, or missing): " + "\n")
             if (anomaly_type == "missing"):
                 percent = input("What percentage of missing values would you like to test for? (5, 10, 20, 50): " + "\n")
@@ -32,8 +33,7 @@ def execute_user_order(username, password, user_input):
             # data_size = "small"
             database_name = get_database_name(anomaly_type, data_size, percent if anomaly_type == "missing" else None)
             anomaly_connection = connect.add_database(username, password, database_name)
-            precision = input("What size base table do you want? (small, medium, original): " + "\n")
-            match precision:
+            match data_size:
                 case "small":
                     base_database = base_database_small
                 case "medium":
