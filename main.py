@@ -57,6 +57,8 @@ def execute_user_order(username, password, user_input):
 
                 features = [desc[0] for desc in main_cursor.description]
 
+                with open('results.txt', 'a') as f:
+                    f.write(f"\ntable: {table}, type: {anomaly_type}, size: {data_size}, method: {method}\n")
                 negative_selection.detect_anomalies(normal_records, anomaly_records, features, detector_count, method=method)
         case "quit":
             if (anomaly_connection):

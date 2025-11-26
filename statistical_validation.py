@@ -27,6 +27,8 @@ def statisticalValidation(anomalies, ref_table, tar_table, method='chi_square'):
             return anomalies
     end_time = time.time()
     print(f"Statistical validation using {method} took {end_time - start_time} seconds and validated {len(result)} anomalies.")
+    with open('results.txt', 'a') as f:
+        f.write(f"Statistical validation using {method} took {end_time - start_time} seconds and validated {len(result)} anomalies.\n")
     print("Results after validation:")
     results.check_anomalies(result, ref_table, tar_table)
     return result

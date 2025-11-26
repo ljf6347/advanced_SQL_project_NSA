@@ -10,9 +10,9 @@ def detect_anomalies(ref_table, tar_table, features, detector_count, matching_th
     start = time.time()
     attempts = 0
     detectors = []
-    max_attempts = detector_count * 10
+    max_attempts = detector_count * 1000
     if matching_threshold is None:
-        matching_threshold = 0.1 * len(features)
+        matching_threshold = (len(features) * 0.15) ** 0.5
 
     # normalize and convert data to numbers to calculate distance
     print("Normalizing data...")
@@ -20,10 +20,11 @@ def detect_anomalies(ref_table, tar_table, features, detector_count, matching_th
 
     # generate detectors
     while len(detectors) < detector_count and attempts < max_attempts:
-        print(f"\rGenerating detectors: {len(detectors)}/{detector_count} attempts {attempts}/{max_attempts}", end="")
+        if (attempts % 1000) == 0:
+            print(f"\rGenerating detectors: {len(detectors)}/{detector_count} attempts {attempts}/{max_attempts}", end="")
         isValid = True
         candidate = generateRandomDetector(features)
-        for record in sampleFrom(ref_table, 100):
+        for record in sampleFrom(ref_table, 1000):
             distance = calculateDistance(candidate, record)
             if distance < matching_threshold:
                 isValid = False
@@ -52,6 +53,8 @@ def detect_anomalies(ref_table, tar_table, features, detector_count, matching_th
 
     end = time.time()
     print(f"The NSA algorithm took {end - start} seconds and found {len(anomalies)} anomalies.")
+    with open('results.txt', 'a') as f:
+        f.write(f"The NSA algorithm took {end - start} seconds and found {len(anomalies)} anomalies.\n")
 
     A = statisticalValidation(anomalies, ref_table, tar_table, method=method)
     return A

@@ -17,21 +17,24 @@ def get_intersection(table1, table2):
 def check_anomalies(found_anomalies, ref_table, tar_table):
     actual_anomalies = list(get_difference(ref_table, tar_table))
     not_anomalies = list(get_intersection(ref_table, tar_table))
-    not_predicted = list(get_difference(tar_table, found_anomalies))
+    not_predicted = list(get_difference(found_anomalies, tar_table))
 
     true_positives = len(get_intersection(found_anomalies, actual_anomalies))
     false_positives = len(get_intersection(found_anomalies, not_anomalies))
     true_negatives = len(get_intersection(not_predicted, not_anomalies))
     false_negatives = len(get_intersection(not_predicted, actual_anomalies))
-    
-    print(f"True Positives: {true_positives}")
-    print(f"False Positives: {false_positives}")
-    print(f"True Negatives: {true_negatives}")
-    print(f"False Negatives: {false_negatives}")
+    text = "Statistical Validation Results:\n"
+    text += f"True Positives: {true_positives}, "
+    text += f"False Positives: {false_positives}, "
+    text += f"True Negatives: {true_negatives}, "
+    text += f"False Negatives: {false_negatives} \n"
 
-    print(f"Precision: {precision(true_positives, false_positives)}")
-    print(f"Recall: {recall(true_positives, false_negatives)}")
-    print(f"Accuracy: {accuracy(true_positives, true_negatives, false_positives, false_negatives)}")
+    text += f"Precision: {precision(true_positives, false_positives)}, "
+    text += f"Recall: {recall(true_positives, false_negatives)}, "
+    text += f"Accuracy: {accuracy(true_positives, true_negatives, false_positives, false_negatives)}\n"
+    print(text)
+    with open('results.txt', 'a') as f:
+        f.write(text)
 
 def recall(tp, fn):
     if (tp + fn) == 0:
