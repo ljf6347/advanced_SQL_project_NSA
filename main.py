@@ -1,3 +1,4 @@
+import random
 import sys
 import connect
 import getpass
@@ -27,13 +28,20 @@ def execute_user_order(username, password, user_input):
             method = input("Which statistical validation method would you like to use? (range_check, Z_score, IQR, etc): " + "\n")
             # method = "IQR"
             # anomaly_type = "outlier"
-            anomaly_type = input("What type of anomalies are you looking for? (value, outlier, date, or missing): " + "\n")
+            anomaly_type = input("What type of anomalies are you looking for? (value, outlier, date, missing, or none): " + "\n")
             if (anomaly_type == "missing"):
                 percent = input("What percentage of missing values would you like to test for? (5, 10, 20, 50): " + "\n")
             data_size = input("What size of data would you like to test on? (small, medium, original): " + "\n")
             # data_size = "small"
-            database_name = get_database_name(anomaly_type, data_size, percent if anomaly_type == "missing" else None)
+            normal = False
+            if (anomaly_type == "none"):
+                database_name = base_database_original
+                normal = True
+            else:
+                database_name = get_database_name(anomaly_type, data_size, percent if anomaly_type == "missing" else None)
             anomaly_connection = connect.add_database(username, password, database_name)
+
+            # choose size for reference dataset
             match data_size:
                 case "small":
                     base_database = base_database_small
@@ -44,6 +52,7 @@ def execute_user_order(username, password, user_input):
             main_connection = connect.add_database(username, password, base_database)
 
             for table in tables:
+                # get table data
                 print(f"Fetching data from table: {table}")
                 main_cursor = main_connection.cursor()
                 main_cursor.execute(get_table_sql % table)
@@ -56,11 +65,14 @@ def execute_user_order(username, password, user_input):
                 for r in range(len(anomaly_records)):
                     anomaly_records[r] = list(anomaly_records[r])
 
+                if (normal): # if no anomalies, get random sample of normal data
+                    anomaly_records = random.sample(anomaly_records, len(normal_records))
+
                 features = [desc[0] for desc in main_cursor.description]
 
                 with open('results.txt', 'a') as f:
                     f.write(f"\ntable: {table}, type: {anomaly_type}, size: {data_size}, method: {method}\n")
-                negative_selection.detect_anomalies(normal_records, anomaly_records, features, detector_count, method=method)
+                negative_selection.detect_anomalies(normal_records, anomaly_records, features, detector_count, method=method, normal=normal)
         case "quit":
             if (anomaly_connection):
                 anomaly_connection.close()

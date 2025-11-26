@@ -6,7 +6,7 @@ from normalization import normalize_data
 
 # Using paper's pseudocode for NSA algorithm
 # ref_table = reference table, tar_table = target table
-def detect_anomalies(ref_table, tar_table, features, detector_count, matching_threshold=None, method='chi_square'):
+def detect_anomalies(ref_table, tar_table, features, detector_count, matching_threshold=None, method='chi_square', normal=False):
     start = time.time()
     attempts = 0
     detectors = []
@@ -56,7 +56,7 @@ def detect_anomalies(ref_table, tar_table, features, detector_count, matching_th
     with open('results.txt', 'a') as f:
         f.write(f"The NSA algorithm took {end - start} seconds and found {len(anomalies)} anomalies.\n")
 
-    A = statisticalValidation(anomalies, ref_table, tar_table, method=method)
+    A = statisticalValidation(anomalies, ref_table, tar_table, method=method, normal=normal)
     return A
 
 # make random numbers for each feature

@@ -2,9 +2,12 @@ import time
 import tqdm
 import results
 
-def statisticalValidation(anomalies, ref_table, tar_table, method='chi_square'):
+def statisticalValidation(anomalies, ref_table, tar_table, method='chi_square', normal=False):
     print("Results before validation:")
-    results.check_anomalies(anomalies, ref_table, tar_table)
+    if (normal):
+        results.check_anomalies(anomalies, tar_table, tar_table)
+    else:
+        results.check_anomalies(anomalies, ref_table, tar_table)
     
     print(f"Starting statistical validation using method: {method}")
     start_time = time.time()
@@ -30,7 +33,10 @@ def statisticalValidation(anomalies, ref_table, tar_table, method='chi_square'):
     with open('results.txt', 'a') as f:
         f.write(f"Statistical validation using {method} took {end_time - start_time} seconds and validated {len(result)} anomalies.\n")
     print("Results after validation:")
-    results.check_anomalies(result, ref_table, tar_table)
+    if (normal):
+        results.check_anomalies(result, tar_table, tar_table)
+    else:
+        results.check_anomalies(result, ref_table, tar_table)
     return result
 
 # for categorical datasets
