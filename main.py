@@ -1,5 +1,6 @@
 import sys
 import connect
+import getpass
 import negative_selection
 
 # MAIN PROGRAM
@@ -23,7 +24,7 @@ detector_count = 1000
 def execute_user_order(username, password, user_input):
     match user_input:
         case "detect_anomalies":
-            method = input("Which statistical validation method would you like to use? (chi_square, Z_score, IQR, etc): " + "\n")
+            method = input("Which statistical validation method would you like to use? (range_check, Z_score, IQR, etc): " + "\n")
             # method = "IQR"
             # anomaly_type = "outlier"
             anomaly_type = input("What type of anomalies are you looking for? (value, outlier, date, or missing): " + "\n")
@@ -92,7 +93,7 @@ if __name__ == "__main__":
     #         user_input = input("What action do you want to take?" + "\n")
     #         execute_user_order(args[1], args[2], user_input)
     username = input("Enter your Postgres username: " + "\n")
-    password = input("Enter your Postgres password: " + "\n")
+    password = getpass.getpass("Enter your Postgres password: " + "\n")
     user_input = ""
     while user_input != "quit":
         # user_input = input("What action do you want to take?" + "\n")

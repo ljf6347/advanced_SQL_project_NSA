@@ -45,9 +45,11 @@ def Z_score_validation(anomalies, tar_table):
     target_lengths = {}
     target_means = {}
 
+    feature_count = len(tar_table[0])
+
     # calculate means for each feature
     for value in tqdm.tqdm(tar_table, desc="Calculating means"):
-        for feature in value:
+        for feature in range(feature_count):
             if feature not in target_sums:
                 target_sums[feature] = 0
                 target_lengths[feature] = 0
@@ -60,7 +62,7 @@ def Z_score_validation(anomalies, tar_table):
 
     # calculate standard deviations for each feature
     for value in tqdm.tqdm(tar_table, desc="Calculating standard deviations 1/2"):
-        for feature in value:
+        for feature in range(feature_count):
             standard_deviations[feature] += (value[feature] - target_means[feature]) ** 2
     for feature in tqdm.tqdm(standard_deviations, desc="Calculating standard deviations 2/2"):
         standard_deviations[feature] = (standard_deviations[feature] / (target_lengths[feature] - 1)) ** 0.5
@@ -68,8 +70,8 @@ def Z_score_validation(anomalies, tar_table):
     # check if anomalies are beyond 3 standard deviations from any feature
     real_anomalies = []
     for anomaly in tqdm.tqdm(anomalies, desc="Validating anomalies with Z-score"):
-        for feature in anomaly:
-            if standard_deviations[feature] == 1: # no other values have that feature, probably an anomaly
+        for feature in range(feature_count):
+            if standard_deviations[feature] == 0:
                 break
             z_score = (anomaly[feature] - target_means[feature]) / standard_deviations[feature]
             if abs(z_score) > 3:
@@ -108,10 +110,31 @@ def IQR_validation(anomalies, tar_table):
     return real_anomalies
 
 # for dates (only have one feature that should be the dates)
-def range_check(anomalies, tar_table):
-    # ima just check if date is outside IQR of target
-    # because it is normalized we can use IQR
-    return IQR_validation(anomalies, tar_table)
+def range_check(anomalies, ref_table):
+    # Check outside min value or max value in reference table
+    amount_of_features = len(ref_table[0])
+    feature_mins = {}
+    feature_maxs = {}
+    real_anomalies = []
+    for feature in tqdm.trange(amount_of_features, desc="Finding min/max values"):
+        for record in ref_table:
+            if (record[feature] is not None):
+                if feature not in feature_mins:
+                    feature_mins[feature] = record[feature]
+                    feature_maxs[feature] = record[feature]
+                else:
+                    if record[feature] < feature_mins[feature]:
+                        feature_mins[feature] = record[feature]
+                    if record[feature] > feature_maxs[feature]:
+                        feature_maxs[feature] = record[feature]
+    
+    for anomaly in anomalies:
+        for feature in range(amount_of_features):
+            if anomaly[feature] < feature_mins[feature] or anomaly[feature] > feature_maxs[feature]:
+                real_anomalies.append(anomaly)
+                break
+
+    return real_anomalies
 
 # check distribution change over 5%
 def threshold_validation(anomalies, ref_table, tar_table):
