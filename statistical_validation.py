@@ -30,7 +30,7 @@ def statisticalValidation(anomalies, ref_table, tar_table, unnormalized_ref, unn
         case 'monte_carlo':
             result = monte_carlo_validation(anomalies, ref_table, tar_table)
         case 'mad':
-            result = mean_absolute_deviation(anomalies, ref_table, tar_table)
+            result = median_absolute_deviation(anomalies, ref_table, tar_table)
         case _:
             print(f"Unknown statistical validation method: {method}")
             return anomalies
@@ -251,7 +251,7 @@ def threshold_validation(anomalies, ref_table, tar_table):
 def monte_carlo_validation(anomalies, ref_table, tar_table):
     pass
 
-def mean_absolute_deviation(anomalies, ref_table, tar_table, threshold = 3):
+def median_absolute_deviation(anomalies, ref_table, tar_table, threshold = 3):
     feature_count = len(ref_table[0])
 
     # Compute medians for reference table
