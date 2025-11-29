@@ -29,6 +29,8 @@ def statisticalValidation(anomalies, ref_table, tar_table, unnormalized_ref, unn
             result = threshold_validation(anomalies, ref_table, tar_table)
         case 'monte_carlo':
             result = monte_carlo_validation(anomalies, ref_table, tar_table)
+        case 'mad':
+            result = mean_absolute_deviation(anomalies, ref_table, tar_table)
         case _:
             print(f"Unknown statistical validation method: {method}")
             return anomalies
@@ -249,8 +251,51 @@ def threshold_validation(anomalies, ref_table, tar_table):
 def monte_carlo_validation(anomalies, ref_table, tar_table):
     pass
 
-def mean_absolute_deviation(anomalies, ref_table, tar_table):
-    pass
+def mean_absolute_deviation(anomalies, ref_table, tar_table, threshold = 3):
+    feature_count = len(ref_table[0])
+
+    # Compute medians for reference table
+    medians = {}
+    for feature in tqdm.tqdm(range(feature_count), desc="Computing medians"):
+        vals = [row[feature] for row in ref_table]
+        vals.sort()
+        n = len(vals)
+
+        if n % 2 == 1:
+            medians[feature] = vals[n // 2]
+        else:
+            medians[feature] = (vals[n // 2 - 1] + vals[n // 2]) / 2.0
+
+    # 2. Compute MAD for each feature
+    MAD = {}
+    for feature in tqdm.tqdm(range(feature_count), desc="Computing MAD"):
+        median_val = medians[feature]
+        abs_dev = [abs(row[feature] - median_val) for row in ref_table]
+        abs_dev.sort()
+        n = len(abs_dev)
+
+        if n % 2 == 1:
+            MAD_val = abs_dev[n // 2]
+        else:
+            MAD_val = (abs_dev[n // 2 - 1] + abs_dev[n // 2]) / 2.0
+
+        MAD[feature] = MAD_val
+
+    # Validate anomalies from target table
+    real_anomalies = []
+
+    for anomaly in tqdm.tqdm(anomalies, desc="Validating anomalies with MAD"):
+        for feature in range(feature_count):
+            if MAD[feature] == 0:
+                break
+            deviation = abs(anomaly[feature] - medians[feature])
+            mad_score = (0.6745 * deviation) / MAD[feature]
+
+            if mad_score > threshold:
+                real_anomalies.append(anomaly)
+                break
+
+    return real_anomalies
 
 def kernel_density_estimation(anomalies, ref_table, tar_table):
     pass
