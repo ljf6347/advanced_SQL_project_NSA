@@ -63,6 +63,16 @@ def normalize_data(reference_data, target_data, features):
                         feature_mins[feature] = record[feature]
                     if record[feature] > feature_maxs[feature]:
                         feature_maxs[feature] = record[feature]
+        for record in target_data:
+            if (record[feature] is not None):
+                if feature not in feature_mins:
+                    feature_mins[feature] = record[feature]
+                    feature_maxs[feature] = record[feature]
+                else:
+                    if record[feature] < feature_mins[feature]:
+                        feature_mins[feature] = record[feature]
+                    if record[feature] > feature_maxs[feature]:
+                        feature_maxs[feature] = record[feature]
 
     # normalize both datasets
     normalized_reference_data = []

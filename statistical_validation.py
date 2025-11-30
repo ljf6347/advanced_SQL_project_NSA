@@ -58,6 +58,18 @@ def statisticalValidation(anomalies, ref_table, tar_table, unnormalized_ref, unn
             results.check_anomalies(result, ref_table, tar_table)
     return result
 
+def combine_anomalies(anomalies1, anomalies2, union=False):
+    set_1 = set(tuple(record) for record in anomalies1)
+    set_2 = set(tuple(record) for record in anomalies2)
+    if (union):
+        # combine with previous anomalies
+        combined_set = set_1.union(set_2)
+        full_anomalies = [list(record) for record in combined_set]
+    else:
+        intersection_set = set_1.intersection(set_2)
+        full_anomalies = [list(record) for record in intersection_set]
+    return full_anomalies
+
 # for categorical datasets
 # return true if distribution has changed, false otherwise
 def chi_square_validation(ref_table, tar_table, categorical_features, a_val=0.05):
@@ -162,18 +174,6 @@ def Z_score_validation(anomalies, ref_table, tar_table, union=False):
                 break
     return combine_anomalies(anomalies, validated_anomalies, union=union)
 
-def combine_anomalies(anomalies1, anomalies2, union=False):
-    set_1 = set(tuple(record) for record in anomalies1)
-    set_2 = set(tuple(record) for record in anomalies2)
-    if (union):
-        # combine with previous anomalies
-        combined_set = set_1.union(set_2)
-        full_anomalies = [list(record) for record in combined_set]
-    else:
-        intersection_set = set_1.intersection(set_2)
-        full_anomalies = [list(record) for record in intersection_set]
-    return full_anomalies
-
 # for numerical dataset, need to be log transformed if skewed
 def IQR_validation(anomalies, ref_table, tar_table, union=False):
     # get upper and lower bound with Q1 and Q3 for each feature
@@ -210,9 +210,22 @@ def range_check(anomalies, unnormalized_ref_table, ref_table, tar_table, union=F
     validated_anomalies = []
     date_cols = check_date_columns(unnormalized_ref_table)
     
+    feature_mins = {}
+    feature_maxs = {}
+    for feature in tqdm.tqdm(date_cols, desc="Finding min/max values"):
+        for record in ref_table:
+            if (record[feature] is not None):
+                if feature not in feature_mins:
+                    feature_mins[feature] = record[feature]
+                    feature_maxs[feature] = record[feature]
+                else:
+                    if record[feature] < feature_mins[feature]:
+                        feature_mins[feature] = record[feature]
+                    if record[feature] > feature_maxs[feature]:
+                        feature_maxs[feature] = record[feature]
     for record in tar_table:
         for feature in date_cols:
-            if record[feature] < 0 or record[feature] > 1: 
+            if record[feature] < feature_mins[feature] or record[feature] > feature_maxs[feature]: 
                 validated_anomalies.append(record)
                 break
 
@@ -239,62 +252,34 @@ def check_categorical_columns(table):
     return categorical_cols
 
 # check distribution change over 5%
-def threshold_validation(ref_table, tar_table):
+def threshold_validation(ref_table, tar_table, bins=10):
     # convert to categorical ranges and call chi_square_validation
     # for each numerical feature, create 10 bins
     num_features = len(ref_table[0])
-    feature_mins = {}
-    feature_maxs = {}
-
-    # get mins and maxes
-    for feature in tqdm.trange(num_features, desc="Finding min/max for threshold validation"):
-        for record in ref_table:
-            if (record[feature] is not None):
-                if feature not in feature_mins:
-                    feature_mins[feature] = record[feature]
-                    feature_maxs[feature] = record[feature]
-                else:
-                    num_val = record[feature]
-                    if num_val < feature_mins[feature]:
-                        feature_mins[feature] = num_val
-                    if num_val > feature_maxs[feature]:
-                        feature_maxs[feature] = num_val
-        for record in tar_table:
-            if (record[feature] is not None):
-                if feature not in feature_mins:
-                    feature_mins[feature] = record[feature]
-                    feature_maxs[feature] = record[feature]
-                else:
-                    num_val = record[feature]
-                    if num_val < feature_mins[feature]:
-                        feature_mins[feature] = num_val
-                    if num_val > feature_maxs[feature]:
-                        feature_maxs[feature] = num_val
 
     # make bins
-    bins = 10
     binned_ref_table = []
     binned_tar_table = []
 
     for record in tqdm.tqdm(ref_table, desc="Binning reference table"):
         binned_ref_table.append([])
         for feature in range(num_features):
-            bin_size = (feature_maxs[feature] - feature_mins[feature]) / bins
+            bin_size = 1 / bins
             if (bin_size == 0):
                 bin_index = 0
             else:
-                bin_index = int((record[feature] - feature_mins[feature]) / bin_size)
+                bin_index = int(record[feature] / bin_size)
                 if bin_index == bins:
                     bin_index -= 1
             binned_ref_table[-1].append(bin_index)
     for record in tqdm.tqdm(tar_table, desc="Binning target table"):
         binned_tar_table.append([])
         for feature in range(num_features):
-            bin_size = (feature_maxs[feature] - feature_mins[feature]) / bins
+            bin_size = 1 / bins
             if (bin_size == 0):
                 bin_index = 0
             else:
-                bin_index = int((record[feature] - feature_mins[feature]) / bin_size)
+                bin_index = int(record[feature] / bin_size)
                 if bin_index == bins:
                     bin_index -= 1
             binned_tar_table[-1].append(bin_index)
