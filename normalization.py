@@ -22,18 +22,25 @@ def table_to_numbers(table, number_of_features):
                     # really should calculate distance later with set intersections or something
                     table[cur_record][feature] = int(len(record[feature]))
                 elif isinstance(record[feature], datetime.datetime):
-                    table[cur_record][feature] = time.mktime(record[feature].timetuple())
-
+                    table[cur_record][feature] = date_to_number(record[feature])
                 # datetime.date (but NOT datetime.datetime)
                 elif isinstance(record[feature], datetime.date):
-                    dt = datetime.datetime.combine(record[feature], datetime.time())
-                    table[cur_record][feature] = time.mktime(dt.timetuple())
+                    table[cur_record][feature] = date_to_number(record[feature])
                 elif type(record[feature]) is decimal.Decimal:
                     table[cur_record][feature] = float(record[feature])
                 # else:
                 #     print(f"Unknown data type: {type(record[feature])}")
         cur_record += 1
     return table
+
+def date_to_number(date_value):
+    if isinstance(date_value, datetime.datetime):
+        return time.mktime(date_value.timetuple())
+
+    # datetime.date (but NOT datetime.datetime)
+    elif isinstance(date_value, datetime.date):
+        dt = datetime.datetime.combine(date_value, datetime.time())
+        return time.mktime(dt.timetuple())
 
 # normalize reference data between 0 and 1, apply same transformation to target data
 def normalize_data(reference_data, target_data, features):
@@ -47,6 +54,16 @@ def normalize_data(reference_data, target_data, features):
     feature_maxs = {}
     for feature in trange(amount_of_features, desc="Finding min/max values"):
         for record in reference_data:
+            if (record[feature] is not None):
+                if feature not in feature_mins:
+                    feature_mins[feature] = record[feature]
+                    feature_maxs[feature] = record[feature]
+                else:
+                    if record[feature] < feature_mins[feature]:
+                        feature_mins[feature] = record[feature]
+                    if record[feature] > feature_maxs[feature]:
+                        feature_maxs[feature] = record[feature]
+        for record in target_data:
             if (record[feature] is not None):
                 if feature not in feature_mins:
                     feature_mins[feature] = record[feature]

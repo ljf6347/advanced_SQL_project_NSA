@@ -24,7 +24,7 @@ def detect_anomalies(ref_table, tar_table, features, detector_count, matching_th
 
     # generate detectors
     while len(detectors) < detector_count and attempts < max_attempts:
-        if (attempts % 100) == 0:
+        if (attempts % 1000) == 0 or len(detectors) % 10 == 0:
             print(f"\rGenerating detectors: {len(detectors)}/{detector_count} attempts {attempts}/{max_attempts}", end="")
         isValid = True
         candidate = generateRandomDetector(features)
