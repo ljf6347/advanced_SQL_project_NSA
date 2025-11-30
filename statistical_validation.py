@@ -6,7 +6,7 @@ from scipy import stats
 from sklearn.neighbors import KernelDensity
 import numpy as np
 
-def statisticalValidation(anomalies, ref_table, tar_table, unnormalized_ref, unnormalized_tar, method='chi_square', normal=False):
+def statisticalValidation(anomalies, ref_table, tar_table, unnormalized_ref, unnormalized_tar, method='chi_square', normal=False, union=False):
     print("Results before validation:")
     if (normal):
         results.check_anomalies(anomalies, tar_table, tar_table)
@@ -21,19 +21,19 @@ def statisticalValidation(anomalies, ref_table, tar_table, unnormalized_ref, unn
             categorical_features = check_categorical_columns(ref_table)
             result = chi_square_validation(unnormalized_ref, unnormalized_tar, categorical_features)
         case 'Z_score':
-            result = Z_score_validation(anomalies, ref_table, tar_table)
+            result = Z_score_validation(anomalies, ref_table, tar_table, union=union)
         case 'IQR':
-            result = IQR_validation(anomalies, ref_table, tar_table)
+            result = IQR_validation(anomalies, ref_table, tar_table, union=union)
         case 'range_check':
-            result = range_check(anomalies, unnormalized_ref, ref_table, tar_table)
+            result = range_check(anomalies, unnormalized_ref, ref_table, tar_table, union=union)
         case 'threshold':
             result = threshold_validation(ref_table, tar_table)
         case 'monte_carlo':
             result = monte_carlo_validation(anomalies, ref_table, tar_table)
         case 'mad':
-            result = median_absolute_deviation(anomalies, ref_table, tar_table)
+            result = median_absolute_deviation(anomalies, ref_table, tar_table, union=union)
         case 'kde':
-            result = kernel_density_estimation(anomalies, ref_table, tar_table)
+            result = kernel_density_estimation(anomalies, ref_table, tar_table, union=union)
         case _:
             print(f"Unknown statistical validation method: {method}")
             return anomalies

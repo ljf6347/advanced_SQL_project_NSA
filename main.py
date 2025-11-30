@@ -14,8 +14,8 @@ get_table_sql = """
     SELECT * FROM %s
 """
 
-# tables = ["customer", "lineitem", "orders"]
-tables = ["lineitem", "orders"]
+tables = ["customer", "lineitem", "orders"]
+# tables = ["lineitem", "orders"]
 base_database_small = "csci_725_tpch_small"
 base_database_medium = "csci_725_tpch_medium"
 base_database_original = "csci_725_tpch_original"
@@ -23,10 +23,12 @@ base_database_original = "csci_725_tpch_original"
 detector_count = 1000
 
 def execute_user_order(username, password, user_input):
+    anomaly_connection = None
+    main_connection = None
     match user_input:
         case "detect_anomalies":
             method = input("Which statistical validation method would you like to use? (range_check, Z_score, IQR, etc): " + "\n")
-            # method = "IQR"
+            # method = "threshold"
             # anomaly_type = "outlier"
             anomaly_type = input("What type of anomalies are you looking for? (value, outlier, date, missing, or none): " + "\n")
             if (anomaly_type == "missing"):
@@ -108,6 +110,6 @@ if __name__ == "__main__":
     password = getpass.getpass("Enter your Postgres password: " + "\n")
     user_input = ""
     while user_input != "quit":
-        # user_input = input("What action do you want to take?" + "\n")
-        user_input = "detect_anomalies"
+        user_input = input("What action do you want to take?" + "\n")
+        # user_input = "detect_anomalies"
         execute_user_order(username, password, user_input)
