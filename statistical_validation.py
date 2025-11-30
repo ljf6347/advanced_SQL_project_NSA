@@ -12,8 +12,8 @@ def statisticalValidation(anomalies, ref_table, tar_table, unnormalized_ref, unn
         results.check_anomalies(anomalies, tar_table, tar_table)
     else:
         results.check_anomalies(anomalies, ref_table, tar_table)
-    
-    print(f"Starting statistical validation using method: {method}")
+
+    print(f"Starting statistical validation using method: {method} with union = {union}")
     start_time = time.time()
     result = None
     match method:
@@ -290,8 +290,9 @@ def threshold_validation(ref_table, tar_table, bins=10):
 def monte_carlo_validation(anomalies, ref_table, tar_table):
     pass
 
-def median_absolute_deviation(anomalies, ref_table, tar_table, threshold = 3, union = False):
+def median_absolute_deviation(anomalies, ref_table, tar_table, threshold=3, union=False):
     feature_count = len(ref_table[0])
+    # print("mad union: ", union)
 
     # Compute medians for reference table
     medians = {}
@@ -333,10 +334,11 @@ def median_absolute_deviation(anomalies, ref_table, tar_table, threshold = 3, un
                 if mad_score > threshold:
                     new_anomalies.append(row)
                     break
-        real_anomalies = anomalies + new_anomalies
+        # real_anomalies = anomalies + new_anomalies
+        real_anomalies = combine_anomalies(anomalies, new_anomalies, union=True)
 
     else:
-        # Validate NSA anomalies to remove 
+        # Validate NSA anomalies to remove
         real_anomalies = []
 
         for anomaly in tqdm.tqdm(anomalies, desc="Validating anomalies with MAD"):
