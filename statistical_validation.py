@@ -6,7 +6,7 @@ from scipy import stats
 from sklearn.neighbors import KernelDensity
 import numpy as np
 
-def statisticalValidation(anomalies, ref_table, tar_table, unnormalized_ref, unnormalized_tar, method='chi_square', normal=False):
+def statisticalValidation(anomalies, ref_table, tar_table, unnormalized_ref, unnormalized_tar, method='chi_square', normal=False, union=False):
     print("Results before validation:")
     if (normal):
         results.check_anomalies(anomalies, tar_table, tar_table)
@@ -33,7 +33,7 @@ def statisticalValidation(anomalies, ref_table, tar_table, unnormalized_ref, unn
         case 'mad':
             result = median_absolute_deviation(anomalies, ref_table, tar_table)
         case 'kde':
-            result = kernel_density_estimation(anomalies, ref_table, tar_table)
+            result = kernel_density_estimation(anomalies, ref_table, tar_table, union=union)
         case _:
             print(f"Unknown statistical validation method: {method}")
             return anomalies
@@ -336,7 +336,7 @@ def median_absolute_deviation(anomalies, ref_table, tar_table, threshold = 3):
 
     return real_anomalies
 
-def kernel_density_estimation(anomalies, ref_table, tar_table):
+def kernel_density_estimation(anomalies, ref_table, tar_table, union=None):
     feature_count = len(ref_table[0])
     bandwidth = 0.5
 
@@ -347,18 +347,33 @@ def kernel_density_estimation(anomalies, ref_table, tar_table):
         kde = KernelDensity(kernel='gaussian', bandwidth=bandwidth).fit(data)
         kde_models[feature] = kde
 
-    densities = np.zeros((len(tar_table), feature_count))
-    T = np.array(tar_table)
+    # union = True
+    if union:
+        densities = np.zeros((len(tar_table), feature_count))
+        T = np.array(tar_table)
 
-    for f in tqdm.tqdm(range(feature_count), desc="Fitting KDE models"):
-        T_data = T[:, f].reshape(-1, 1)
-        logdens = kde_models[f].score_samples(T_data)
-        densities[:, f] = np.exp(logdens)
+        for f in tqdm.tqdm(range(feature_count), desc="Fitting KDE models"):
+            T_data = T[:, f].reshape(-1, 1)
+            logdens = kde_models[f].score_samples(T_data)
+            densities[:, f] = np.exp(logdens)
 
-    # Row-level anomaly detection
-    density_threshold = 0.01
-    anomalous_mask = np.any(densities < density_threshold, axis=1)
-    new_anomalies = T[anomalous_mask]
-    anomalies.extend(new_anomalies)
+        # Row-level anomaly detection
+        density_threshold = 0.01
+        anomalous_mask = np.any(densities < density_threshold, axis=1)
+        new_anomalies = T[anomalous_mask]
+        anomalies.extend(new_anomalies)
+        return anomalies
+    else:
+        densities = np.zeros((len(anomalies), feature_count))
+        A = np.array(anomalies)
 
-    return anomalies
+        for f in tqdm.tqdm(range(feature_count), desc="Fitting KDE models"):
+            T_data = A[:, f].reshape(-1, 1)
+            logdens = kde_models[f].score_samples(T_data)
+            densities[:, f] = np.exp(logdens)
+
+        # Row-level anomaly detection
+        density_threshold = 0.01
+        anomalous_mask = np.any(densities < density_threshold, axis=1)
+        filtered_anomalies = A[anomalous_mask]
+        return filtered_anomalies
