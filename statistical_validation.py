@@ -379,8 +379,8 @@ def kernel_density_estimation(anomalies, ref_table, tar_table, union=None):
         density_threshold = 0.01
         anomalous_mask = np.any(densities < density_threshold, axis=1)
         new_anomalies = T[anomalous_mask]
-        anomalies.extend(new_anomalies)
-        return anomalies
+        # anomalies.extend(new_anomalies)
+        return combine_anomalies(anomalies, new_anomalies, union=True)
     else:
         densities = np.zeros((len(anomalies), feature_count))
         A = np.array(anomalies)
