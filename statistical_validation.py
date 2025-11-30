@@ -290,7 +290,7 @@ def threshold_validation(ref_table, tar_table, bins=10):
 def monte_carlo_validation(anomalies, ref_table, tar_table):
     pass
 
-def median_absolute_deviation(anomalies, ref_table, tar_table, threshold = 3):
+def median_absolute_deviation(anomalies, ref_table, tar_table, threshold = 3, union = False):
     feature_count = len(ref_table[0])
 
     # Compute medians for reference table
@@ -305,7 +305,7 @@ def median_absolute_deviation(anomalies, ref_table, tar_table, threshold = 3):
         else:
             medians[feature] = (vals[n // 2 - 1] + vals[n // 2]) / 2.0
 
-    # 2. Compute MAD for each feature
+    # Compute MAD for each feature
     MAD = {}
     for feature in tqdm.tqdm(range(feature_count), desc="Computing MAD"):
         median_val = medians[feature]
@@ -320,19 +320,35 @@ def median_absolute_deviation(anomalies, ref_table, tar_table, threshold = 3):
 
         MAD[feature] = MAD_val
 
-    # Validate anomalies from target table
-    real_anomalies = []
+    if union:
+        # Calculate MAD scores against target table and add to NSA's anomalies
+        new_anomalies = []
+        for row in tqdm.tqdm(tar_table, desc="Scanning target table for MAD anomalies"):
+            for feature in range(feature_count):
+                if MAD[feature] == 0:
+                    continue
+                deviation = abs(row[feature] - medians[feature])
+                mad_score = 0.6745 * deviation / MAD[feature]
 
-    for anomaly in tqdm.tqdm(anomalies, desc="Validating anomalies with MAD"):
-        for feature in range(feature_count):
-            if MAD[feature] == 0:
-                break
-            deviation = abs(anomaly[feature] - medians[feature])
-            mad_score = (0.6745 * deviation) / MAD[feature]
+                if mad_score > threshold:
+                    new_anomalies.append(row)
+                    break
+        real_anomalies = anomalies + new_anomalies
 
-            if mad_score > threshold:
-                real_anomalies.append(anomaly)
-                break
+    else:
+        # Validate NSA anomalies to remove 
+        real_anomalies = []
+
+        for anomaly in tqdm.tqdm(anomalies, desc="Validating anomalies with MAD"):
+            for feature in range(feature_count):
+                if MAD[feature] == 0:
+                    break
+                deviation = abs(anomaly[feature] - medians[feature])
+                mad_score = (0.6745 * deviation) / MAD[feature]
+
+                if mad_score > threshold:
+                    real_anomalies.append(anomaly)
+                    break
 
     return real_anomalies
 
