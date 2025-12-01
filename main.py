@@ -15,7 +15,7 @@ get_table_sql = """
 """
 
 tables = ["customer", "lineitem", "orders"]
-# tables = ["lineitem", "orders"]
+# tables = ["orders"]
 base_database_small = "csci_725_tpch_small"
 base_database_medium = "csci_725_tpch_medium"
 base_database_original = "csci_725_tpch_original"

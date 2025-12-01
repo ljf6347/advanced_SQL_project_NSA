@@ -4,8 +4,6 @@
    1. More info below to run manually
 
 **functions**
-- add_anomalies
-  - Artificially add anomalies into the data
 - detect_anomalies
   - Runs the negative selection algorithm to find anomalies
 - quit 

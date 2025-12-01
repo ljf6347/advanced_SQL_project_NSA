@@ -18,7 +18,7 @@ def statisticalValidation(anomalies, ref_table, tar_table, unnormalized_ref, unn
     result = None
     match method:
         case 'chi_square':
-            categorical_features = check_categorical_columns(ref_table)
+            categorical_features = check_categorical_columns(unnormalized_ref)
             result = chi_square_validation(unnormalized_ref, unnormalized_tar, categorical_features)
         case 'Z_score':
             result = Z_score_validation(anomalies, ref_table, tar_table, union=union)
