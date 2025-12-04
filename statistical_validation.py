@@ -354,7 +354,7 @@ def median_absolute_deviation(anomalies, ref_table, tar_table, threshold=3, unio
 
     return real_anomalies
 
-def kernel_density_estimation(anomalies, ref_table, tar_table, union=None):
+def kernel_density_estimation(anomalies, ref_table, tar_table, union=None, density_threshold=0.3):
     feature_count = len(ref_table[0])
     bandwidth = 0.5
 
@@ -374,11 +374,12 @@ def kernel_density_estimation(anomalies, ref_table, tar_table, union=None):
             T_data = T[:, f].reshape(-1, 1)
             logdens = kde_models[f].score_samples(T_data)
             densities[:, f] = np.exp(logdens)
+            # print(f,np.min(densities[:, f]), np.max(densities[:, f]))
 
         # Row-level anomaly detection
-        density_threshold = 0.01
         anomalous_mask = np.any(densities < density_threshold, axis=1)
         new_anomalies = T[anomalous_mask]
+        # print("Len new anomalies from KDE: ", len(new_anomalies))
         # anomalies.extend(new_anomalies)
         return combine_anomalies(anomalies, new_anomalies, union=True)
     else:
@@ -391,7 +392,6 @@ def kernel_density_estimation(anomalies, ref_table, tar_table, union=None):
             densities[:, f] = np.exp(logdens)
 
         # Row-level anomaly detection
-        density_threshold = 0.01
         anomalous_mask = np.any(densities < density_threshold, axis=1)
         filtered_anomalies = A[anomalous_mask]
         return filtered_anomalies
